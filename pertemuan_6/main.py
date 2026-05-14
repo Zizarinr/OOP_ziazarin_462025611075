@@ -1,0 +1,2 @@
+class gabutz:
+    pass
