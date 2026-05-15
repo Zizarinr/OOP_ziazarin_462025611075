@@ -1,4 +1,4 @@
-class standarLab:
+class standarLab: #p gabut
     def __init__(self, nama, jurusan, fakultas):
         self.nama = nama
         self.jurusan = jurusan
