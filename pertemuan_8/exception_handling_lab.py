@@ -57,3 +57,5 @@ except AgeLimitError as e:
     print(f"Failed, {e}")
 except AmountMinError as e:
     print(f"Failed, {e}")
+finally:
+    print("Thank You for Using our services!")
