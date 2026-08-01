@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 
 class DataTidakDitemukanError(Exception): pass
 class NilaiTidakValidError(Exception): pass
@@ -12,6 +13,18 @@ class User:
         self.password = password
     def tampilkan_menu(self):
         raise NotImplementedError("tidak diimplementasikan")
+    @staticmethod
+    def konversi_bobot(nilai):
+        if nilai >= 80:
+            return 4.0
+        elif nilai >= 70:
+            return 3.0
+        elif nilai >= 60:
+            return 2.0
+        elif nilai >= 50:
+            return 1.0
+        else:
+            return 0.0
 
 class Mahasiswa(User):
     def __init__(self, user_id, nama, password):
@@ -48,16 +61,7 @@ class Mahasiswa(User):
         for n in daftar_nilai:
             if n["mahasiswa_id"] == self.id and n["kode_mk"] in daftar_matkul:
                 sks = daftar_matkul[n["kode_mk"]]["sks"]
-                if n["nilai"] >= 80:
-                    bobot = 4.0
-                elif n["nilai"] >= 70:
-                    bobot = 3.0
-                elif n["nilai"] >= 60:
-                    bobot = 2.0
-                elif n["nilai"] >= 50:
-                    bobot = 1.0
-                else:
-                    bobot = 0.0
+                bobot = self.konversi_bobot(n["nilai"])
                 total_bobot += bobot * sks
                 total_sks += sks
         if total_sks == 0:
@@ -73,22 +77,40 @@ class Mahasiswa(User):
 3. Lihat Nilai
 4. Hitung IPK
 5. Logout
+6. Logout dan Keluar
 """)
 
 class Dosen(User):
     def catat_kehadiran(self, kode_mk, sesi, mahasiswa_id, status, daftar_absensi):
-        ...
+        for a in daftar_absensi:
+            if a["mahasiswa_id"] == mahasiswa_id and a["kode_mk"] == kode_mk and a["sesi"] == sesi:
+                raise AbsensiGandaError("Absensi untuk mahasiswa ini pada matakuliah ini dan sesi ini sudah dicatat")
+        daftar_absensi.append({"mahasiswa_id": mahasiswa_id, "kode_mk": kode_mk, "sesi": sesi, "status": status})
+        print(f"Mahasiswa {mahasiswa_id} pada matakuliah {kode_mk} sesi {sesi} berhasil dicatat kehadirannya sebagai {status}")
     def input_nilai(self, kode_mk, mahasiswa_id, nilai, daftar_nilai):
         if not (0 <= nilai <= 100):
             raise NilaiTidakValidError("Nilai harus diantara 0 dan 100")
+        for n in daftar_nilai:
+            if n["mahasiswa_id"] == mahasiswa_id and n["kode_mk"] == kode_mk:
+                raise NilaiTidakValidError("Nilai untuk mahasiswa ini pada matakuliah ini sudah dicatat")
+        daftar_nilai.append({"mahasiswa_id": mahasiswa_id, "kode_mk": kode_mk, "nilai": nilai})
+        print(f"Nilai {nilai} untuk mahasiswa {mahasiswa_id} pada matakuliah {kode_mk} berhasil dicatat")
     def lihat_rekap_kehadiran(self, kode_mk, daftar_absensi):
-        ...
+        print(f"Rekap Kehadiran untuk matakuliah {kode_mk}:")
+        found = False
+        for a in daftar_absensi:
+            if a["kode_mk"] == kode_mk:
+                print(f"Mahasiswa {a['mahasiswa_id']} - Sesi {a['sesi']}: {a['status']}")
+                found = True
+        if not found:
+            print("Belum ada absensi yang dicatat untuk matakuliah ini")
     def tampilkan_menu(self):
         print(""" 
 1. Catat Kehadiran
 2. Input Nilai
 3. Lihat Rekap Kehadiran
 4. Logout
+5. Logout dan Keluar
 """)
 
 def load_semua_data():
@@ -144,3 +166,81 @@ def login(users, id_input, password_input):
             elif u["role"] == "dosen":
                 return Dosen(u["id"], u["nama"], u["password"])
     raise DataTidakDitemukanError("Data tidak ditemukan atau ID/Password salah")
+
+def main():
+    users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai = load_semua_data()
+    waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("Selamat datang di Sistem Informasi Akademik (SIAKAD) \n", waktu_sekarang)
+    time.sleep(1)
+
+    while True:
+        id_input = input("Masukkan ID: ")
+        password_input = input("Masukkan Password: ")
+        try:
+            user = login(users, id_input, password_input)
+        except DataTidakDitemukanError as e:
+            print(e)
+            continue
+        print(f"Selamat datang, {user.nama}!")
+
+        while True:
+            user.tampilkan_menu()
+            pilihan = input("Pilih opsi > ")
+
+            if isinstance(user, Mahasiswa):
+                if pilihan == "1":
+                    kode_mk = input("Masukkan kode matakuliah: ")
+                    try:
+                        user.ambil_jadwal(kode_mk, daftar_matkul, daftar_krs)
+                        save_semua_data(users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai)
+                    except DataTidakDitemukanError as e:
+                        print(e)
+                elif pilihan == "2":
+                    user.lihat_jadwal(daftar_krs, daftar_matkul)
+                elif pilihan == "3":
+                    user.lihat_nilai(daftar_nilai, daftar_matkul)
+                elif pilihan == "4":
+                    user.hitung_ipk(daftar_nilai, daftar_matkul)
+                elif pilihan == "5":
+                    print("Logout berhasil")
+                    break
+                elif pilihan == "6":
+                    print("Logout dan keluar berhasil")
+                    return
+                else:
+                    print("Pilihan tidak valid")
+
+            if isinstance(user, Dosen):
+                if pilihan == "1":
+                    kode_mk = input("Masukkan kode matakuliah: ")
+                    sesi = int(input("Masukkan sesi: "))
+                    mahasiswa_id = input("Masukkan ID mahasiswa: ")
+                    status = input("Masukkan status (Hadir/Izin/Sakit/Ghaib): ")
+                    try:
+                        user.catat_kehadiran(kode_mk, sesi, mahasiswa_id, status, daftar_absensi)
+                        save_semua_data(users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai)
+                    except AbsensiGandaError as e:
+                        print(e)
+                elif pilihan == "2":
+                    kode_mk = input("Masukkan kode matakuliah: ")
+                    mahasiswa_id = input("Masukkan ID mahasiswa: ")
+                    nilai = float(input("Masukkan nilai (0-100): "))
+                    try:
+                        user.input_nilai(kode_mk, mahasiswa_id, nilai, daftar_nilai)
+                        save_semua_data(users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai)
+                    except NilaiTidakValidError as e:
+                        print(e)
+                elif pilihan == "3":
+                    kode_mk = input("Masukkan kode matakuliah: ")
+                    user.lihat_rekap_kehadiran(kode_mk, daftar_absensi)
+                elif pilihan == "4":
+                    print("Logout berhasil")
+                    break
+                elif pilihan == "5":
+                    print("Logout dan keluar berhasil")
+                    return
+                else:
+                    print("Pilihan tidak valid")
+
+if __name__ == "__main__":
+    main()
