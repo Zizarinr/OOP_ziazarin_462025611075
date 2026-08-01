@@ -52,7 +52,7 @@ class Dosen(User):
 
 def load_semua_data():
     users = []
-    daftar_matkul = []
+    daftar_matkul = {}
     daftar_krs = []
     daftar_absensi = []
     daftar_nilai = []
@@ -74,10 +74,32 @@ def load_semua_data():
                 daftar_matkul[parts[1]] = {"nama": parts[2], "sks": int(parts[3]), "dosen_id": parts[4]}
             elif prefix == "KRS":
                 daftar_krs.append({"mahasiswa_id": parts[1], "kode_mk": parts[2]})
-            elif prefix == "ABSENSI":
+            elif prefix == "ABSEN":
                 daftar_absensi.append({"mahasiswa_id": parts[1], "kode_mk": parts[2], "sesi": int(parts[3]), "status": parts[4]})
 
             elif prefix == "NILAI":
                 daftar_nilai.append({"mahasiswa_id": parts[1], "kode_mk": parts[2], "nilai": float(parts[3])})
 
     return users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai
+
+def save_semua_data(users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai):
+    with open ("data.txt", "w") as f:
+        for u in users:
+            f.write(f"USER,{u['role']},{u['id']},{u['nama']},{u['password']}\n")
+        for kode_mk, mk in daftar_matkul.items():
+            f.write(f"MK,{kode_mk},{mk['nama']},{mk['sks']},{mk['dosen_id']}\n")
+        for k in daftar_krs:
+            f.write(f"KRS,{k['mahasiswa_id']},{k['kode_mk']}\n")
+        for a in daftar_absensi:
+            f.write(f"ABSEN,{a['mahasiswa_id']},{a['kode_mk']},{a['sesi']},{a['status']}\n")
+        for n in daftar_nilai:
+            f.write(f"NILAI,{n['mahasiswa_id']},{n['kode_mk']},{n['nilai']}\n")
+
+def login(users, id_input, password_input):
+    for u in users:
+        if u["id"] == id_input and u["password"] == password_input:
+            if u["role"] == "mahasiswa":
+                return Mahasiswa(u["id"], u["nama"], u["password"])
+            elif u["role"] == "dosen":
+                return Dosen(u["id"], u["nama"], u["password"])
+    raise DataTidakDitemukanError("Data tidak ditemukan atau ID/Password salah")
