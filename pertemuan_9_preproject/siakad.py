@@ -18,13 +18,54 @@ class Mahasiswa(User):
         super().__init__(user_id, nama, password)
         self._ipk = 0.0
     def ambil_jadwal(self, kode_mk, daftar_matkul, daftar_krs):
-        ...
-    def lihat_jadwal(self, daftar_krs):
-        ...
-    def lihat_nilai(self, daftar_nilai):
-        ...
+        if kode_mk not in daftar_matkul:
+            raise DataTidakDitemukanError(f"Matkul dengan kode {kode_mk} tidak ditemukan")
+        for k in daftar_krs:
+            if k["mahasiswa_id"] == self.id and k["kode_mk"] == kode_mk:
+                print(f"Jadwal matakuliah {kode_mk} sudah diambil sebelumnya")
+                return
+        daftar_krs.append({"mahasiswa_id": self.id, "kode_mk": kode_mk})
+        print(f"Berhasil mengambil jadwal matakuliah {kode_mk}")
+    def lihat_jadwal(self, daftar_krs, daftar_matkul):
+        print(f"Jadwal {self.nama}:")
+        for k in daftar_krs:
+            if k["mahasiswa_id"] ==self.id and k["kode_mk"] in daftar_matkul:
+                mk = daftar_matkul[k["kode_mk"]]
+                print(f"{k['kode_mk']} - {mk['nama']} ({mk['sks']} SKS)")
+    def lihat_nilai(self, daftar_nilai, daftar_matkul):
+        print(f"Nilai {self.nama}:")
+        found = False
+        for n in daftar_nilai:
+            if n["mahasiswa_id"] == self.id and n["kode_mk"] in daftar_matkul:
+                mk = daftar_matkul[n["kode_mk"]]
+                print(f"{n['kode_mk']} - {mk['nama']}: {n['nilai']}")
+                found = True
+        if not found:
+            print("Belum ada nilai yang dicatat")
     def hitung_ipk(self, daftar_nilai, daftar_matkul):
-        ...
+        total_bobot = 0.0
+        total_sks = 0
+        for n in daftar_nilai:
+            if n["mahasiswa_id"] == self.id and n["kode_mk"] in daftar_matkul:
+                sks = daftar_matkul[n["kode_mk"]]["sks"]
+                if n["nilai"] >= 80:
+                    bobot = 4.0
+                elif n["nilai"] >= 70:
+                    bobot = 3.0
+                elif n["nilai"] >= 60:
+                    bobot = 2.0
+                elif n["nilai"] >= 50:
+                    bobot = 1.0
+                else:
+                    bobot = 0.0
+                total_bobot += bobot * sks
+                total_sks += sks
+        if total_sks == 0:
+            print("Nilai belum keluar, IPK tidak dapat dihitung")
+            return 0.0
+        self._ipk = total_bobot / total_sks
+        print(f"IPK kamu adalah: {self._ipk:.2f}")
+        return self._ipk
     def tampilkan_menu(self):
         print("""
 1. Ambil Jadwal
@@ -43,7 +84,7 @@ class Dosen(User):
     def lihat_rekap_kehadiran(self, kode_mk, daftar_absensi):
         ...
     def tampilkan_menu(self):
-        print("""
+        print(""" 
 1. Catat Kehadiran
 2. Input Nilai
 3. Lihat Rekap Kehadiran
