@@ -29,7 +29,7 @@ class User:
 class Mahasiswa(User):
     def __init__(self, user_id, nama, password):
         super().__init__(user_id, nama, password)
-        self._ipk = 0.0
+        self.__ipk = 0.0
     def ambil_jadwal(self, kode_mk, daftar_matkul, daftar_krs):
         if kode_mk not in daftar_matkul:
             raise DataTidakDitemukanError(f"Matkul dengan kode {kode_mk} tidak ditemukan")
@@ -67,9 +67,9 @@ class Mahasiswa(User):
         if total_sks == 0:
             print("Nilai belum keluar, IPK tidak dapat dihitung")
             return 0.0
-        self._ipk = total_bobot / total_sks
-        print(f"IPK kamu adalah: {self._ipk:.2f}")
-        return self._ipk
+        self.__ipk = total_bobot / total_sks
+        print(f"IPK kamu adalah: {self.__ipk:.2f}")
+        return self.__ipk
     def tampilkan_menu(self):
         print("""
 1. Ambil Jadwal
@@ -170,8 +170,8 @@ def login(users, id_input, password_input):
 def main():
     users, daftar_matkul, daftar_krs, daftar_absensi, daftar_nilai = load_semua_data()
     waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print("Selamat datang di Sistem Informasi Akademik (SIAKAD) \n", waktu_sekarang)
-    time.sleep(1)
+    print("Selamat datang di Sistem Informasi Akademik (SIAKAD) \n",waktu_sekarang)
+    time.sleep(2)
 
     while True:
         id_input = input("Masukkan ID: ")
@@ -202,9 +202,11 @@ def main():
                 elif pilihan == "4":
                     user.hitung_ipk(daftar_nilai, daftar_matkul)
                 elif pilihan == "5":
+                    time.sleep(1)
                     print("Logout berhasil")
                     break
                 elif pilihan == "6":
+                    time.sleep(1)
                     print("Logout dan keluar berhasil")
                     return
                 else:
@@ -234,10 +236,12 @@ def main():
                     kode_mk = input("Masukkan kode matakuliah: ")
                     user.lihat_rekap_kehadiran(kode_mk, daftar_absensi)
                 elif pilihan == "4":
+                    time.sleep(1)
                     print("Logout berhasil")
                     break
                 elif pilihan == "5":
-                    print("Logout dan keluar berhasil")
+                    time.sleep(1)
+                    print("Logout dan keluar berhasil!")
                     return
                 else:
                     print("Pilihan tidak valid")
